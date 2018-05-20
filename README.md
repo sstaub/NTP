@@ -104,9 +104,6 @@ get the datas from the tm structure of the "time.h" library
 
 ## char* formattedTime(const char *format)
 gives back a string, formated with strftime function of standard time library
-
-## void offset(int16\_t days, int8\_t hours, int8\_t minutes, int8\_t seconds)
-you can give a manually time offset for e.g. debug purposes
 ```
 | symbol | explanation
 /* General */
@@ -164,6 +161,8 @@ you can give a manually time offset for e.g. debug purposes
 | p | writes localized a.m. or p.m. (locale dependent)
 ```
 
+## void offset(int16\_t days, int8\_t hours, int8\_t minutes, int8\_t seconds)
+you can give a manually time offset for e.g. debug purposes
 
 
 
