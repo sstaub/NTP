@@ -107,7 +107,7 @@ gives back a string, formated with strftime function of standard time library
 ```
 | symbol | explanation
 /* General */
-| %	| writes literal %. The full conversion specification must be %%.
+| % | writes literal %. The full conversion specification must be %%.
 | n | writes newline character
 | t | writes horizontal tab character
 /* Year */
@@ -135,14 +135,14 @@ gives back a string, formated with strftime function of standard time library
 	  - Includes January 4
 	  - Includes first Thursday of the year
 /* Day of the year/month */
-| j	| writes day of the year as a decimal number (range [001,366])
+| j | writes day of the year as a decimal number (range [001,366])
 | d | writes day of the month as a decimal number (range [01,31])
 | e | writes day of the month as a decimal number (range [1,31]).
 	  Single digit is preceded by a space.
 /* Day of the week */
 | a | writes abbreviated weekday name, e.g. Fri (locale dependent)
 | A | writes full weekday name, e.g. Friday (locale dependent)
-| w	| writes weekday as a decimal number, where Sunday is 0 (range [0-6])
+| w | writes weekday as a decimal number, where Sunday is 0 (range [0-6])
 | u | writes weekday as a decimal number, where Monday is 1 (ISO 8601 format) (range [1-7])
 /* Hour, minute, second */
 | H | writes hour as a decimal number, 24 hour clock (range [00-23])
@@ -155,9 +155,9 @@ gives back a string, formated with strftime function of standard time library
 | X | writes localized time representation (locale dependent)
 | D | equivalent to "%m/%d/%y"
 | F | equivalent to "%Y-%m-%d" (the ISO 8601 date format)
-| r	| writes localized 12-hour clock time (locale dependent)
+| r | writes localized 12-hour clock time (locale dependent)
 | R | equivalent to "%H:%M"
-| T	| equivalent to "%H:%M:%S" (the ISO 8601 time format)
+| T | equivalent to "%H:%M:%S" (the ISO 8601 time format)
 | p | writes localized a.m. or p.m. (locale dependent)
 ```
 
