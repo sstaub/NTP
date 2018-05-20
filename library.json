@@ -1,0 +1,13 @@
+{
+  "name": "NTP",
+  "keywords": "ntp, client, time, timezone",
+  "description": "A NTP Client to connect to a time server",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/sstaub/NTP.git"
+  },
+  "version": "1.0.0",
+  "frameworks": "arduino",
+  "platforms": "*"
+}
