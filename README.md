@@ -84,7 +84,7 @@ sets the rules for the standard time settings
 - tzOffset timezone offset
 
 ## char* ruleSTD()
-gives the DST time back, formatted as an ctime string
+gives the STD time back, formatted as an ctime string
 
 ## char* tzName()
 gives you the name of the current timezone, based on your rule settings
