@@ -68,7 +68,7 @@ sets the rules for the daylight save time settings
 - wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
 - month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
 - hour the local hour when rule chages
-- tzOffset timezone offset
+- tzOffset timezone offset in minutes
 
 ## char* ruleDST()
 gives the DST time back, formatted as an ctime string
@@ -81,7 +81,7 @@ sets the rules for the standard time settings
 - wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
 - month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
 - hour the local hour when rule chages
-- tzOffset timezone offset
+- tzOffset timezone offset in minutes
 
 ## char* ruleSTD()
 gives the STD time back, formatted as an ctime string
