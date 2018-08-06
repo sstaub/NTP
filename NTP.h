@@ -156,6 +156,13 @@ class NTP {
      * @return int 1 if summertime, 0 no summertime
      */
     bool isDST();
+	
+    /**
+     * @brief get the Unix epoch timestamp
+     * 
+     * @return time_t timestamp
+     */
+    inline time_t epoch() const { return utcCurrent; }
 
     /**
      * @brief get the year
