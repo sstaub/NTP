@@ -99,6 +99,9 @@ use in conjunction with timeZone, when there is no DST!
 ## bool isDST()
 gives the DST status back, true if summertime
 
+## time_t epoch()
+get the Unix epoch timestamp
+
 ## int16\_t year(), int8\_t month(), int8\_t day(), int8\_t weekDay(), int8\_t hours(), int8\_t minutes(), int8\_t seconds()
 get the datas from the tm structure of the "time.h" library
 
