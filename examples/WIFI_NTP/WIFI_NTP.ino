@@ -1,9 +1,9 @@
-// example for WIFI based boards like ESP32 or MKR1000
+// example for WIFI based boards like ESP8266, ESP32, WiFi 101 shield or MKR1000
 
 #include "Arduino.h"
 // change next line to use with another board/shield
 //#include <ESP8266WiFi.h>
-//#include <WiFi.h> // for WiFi shield
+//#include <WiFi.h> // for WiFi shield or ESP32
 #include <WiFi101.h> // for WiFi 101 shield or MKR1000
 #include "WiFiUdp.h"
 #include "NTP.h"
