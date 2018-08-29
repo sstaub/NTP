@@ -5,8 +5,8 @@
 #include "WiFiUdp.h"
 #include "NTP.h"
 
-char *ssid     = "yourSSID";
-char *password = "yourPASSWORD";
+char ssid[]     = "yourSSID";
+char password[] = "yourPASSWORD";
 
 WiFiUDP wifiUdp;
 NTP ntp(wifiUdp);
