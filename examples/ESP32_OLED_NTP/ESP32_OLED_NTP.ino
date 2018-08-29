@@ -6,8 +6,8 @@
 #include "SSD1306.h"
 #include "NTP.h"
 
-char *ssid = "yourSSID";
-char *password = "yourPASSWORD";
+char ssid[] = "yourSSID";
+char password[] = "yourPASSWORD";
 
 SSD1306 display(0x3c, 5, 4);
 WiFiUDP wifiUdp;
