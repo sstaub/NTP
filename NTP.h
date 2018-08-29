@@ -25,6 +25,7 @@
 
 #include "Arduino.h"
 #include <time.h>
+#include <Udp.h>
 
 #define SEVENTYYEARS 2208988800UL
 #define NTP_PACKET_SIZE 48
