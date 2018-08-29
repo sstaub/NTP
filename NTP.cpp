@@ -87,11 +87,11 @@ void NTP::ruleDST(const char* tzName, int8_t week, int8_t wday, int8_t month, in
   dstStart.tzOffset = tzOffset;
   }
 
-char* NTP::ruleDST() {
+const char* NTP::ruleDST() {
   if(dstZone) {
     return ctime(&dstTime);
     }
-  else return ruleDSTmessage;
+  else return RULE_DST_MESSAGE;
   }
 
 void NTP::ruleSTD(const char* tzName, int8_t week, int8_t wday, int8_t month, int8_t hour, int tzOffset) {
@@ -103,19 +103,19 @@ void NTP::ruleSTD(const char* tzName, int8_t week, int8_t wday, int8_t month, in
   dstEnd.tzOffset = tzOffset;
   }
     
-char* NTP::ruleSTD() {
+const char* NTP::ruleSTD() {
   if(dstZone) {
     return ctime(&stdTime);
     }
-  else return ruleSTDmessage;
+  else return RULE_STD_MESSAGE;
   }
 
-char* NTP::tzName() {
+const char* NTP::tzName() {
   if (dstZone) {
     if (summerTime()) return dstStart.tzName;
     else return dstEnd.tzName;
     }
-  return gmtString; // TODO add timeZoneOffset
+  return GMT_MESSAGE; // TODO add timeZoneOffset
   }
 
 void NTP::timeZone(int8_t tzHours, int8_t tzMinutes) {

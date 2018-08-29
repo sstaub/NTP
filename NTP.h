@@ -25,12 +25,17 @@
 
 #include "Arduino.h"
 #include <time.h>
+#include <Udp.h>
 
 #define SEVENTYYEARS 2208988800UL
 #define NTP_PACKET_SIZE 48
 #define NTP_DEFAULT_LOCAL_PORT 123
 #define SECS_PER_MINUTES 60
 #define SECS_PER_DAY 86400
+
+#define GMT_MESSAGE "GMT +/- offset"
+#define RULE_DST_MESSAGE "no DST rule"
+#define RULE_STD_MESSAGE "no STD rule"
 
 enum week_t {Last, First, Second, Third, Fourth}; 
 enum dow_t {Sun, Mon, Tue, Wed, Thu, Fri, Sat};
@@ -104,7 +109,7 @@ class NTP {
      * 
      * @return char* time string
      */
-    char* ruleDST();
+    const char* ruleDST();
 
     /**
      * @brief set the rule for STD (standard day)
@@ -124,14 +129,14 @@ class NTP {
      * 
      * @return char* time string
      */
-    char* ruleSTD();
+    const char* ruleSTD();
 
     /**
      * @brief get the name of the timezone
      * 
      * @return char* name of the timezone
      */
-    char* tzName();
+    const char* tzName();
 
    /**
      * @brief set the timezone manually 
@@ -253,9 +258,6 @@ class NTP {
     time_t dstTime, stdTime;
     uint16_t yearDST;
     char timeString[64];
-    char gmtString[16] = "GMT +/- offset";
-    char ruleDSTmessage[12] ="no DST rule";
-    char ruleSTDmessage[12] ="no STD rule";
     struct ruleDST {
 	    char tzName[6]; // five chars max
 	    int8_t week;   // First, Second, Third, Fourth, or Last week of the month
