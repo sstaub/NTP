@@ -26,7 +26,9 @@ NTP::NTP(UDP& udp) {
   this->udp = &udp;
   }
 
-NTP::~NTP() {}
+NTP::~NTP() {
+  stop();
+  }
 
 void NTP::begin() {
   udp->begin(NTP_DEFAULT_LOCAL_PORT);
