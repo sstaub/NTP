@@ -167,7 +167,7 @@ class NTP {
      * 
      * @return time_t timestamp
      */
-    inline time_t epoch() const { return utcCurrent; }
+    time_t epoch();
 
     /**
      * @brief get the year

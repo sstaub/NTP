@@ -140,6 +140,11 @@ bool NTP::isDST() {
   return summerTime();
   }
 
+time_t NTP::epoch() {
+  currentTime();
+  return utcCurrent; 
+  }
+
 void NTP::currentTime() {
   utcCurrent = diffTime + utcTime + ((millis() - lastUpdate) / 1000); 
   if (dstZone) {
