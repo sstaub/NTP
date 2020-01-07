@@ -73,7 +73,7 @@ class NTP {
      * made every 60 seconds. This can be configured in the NTPTime constructor.
      * 
      * @return true on success
-     * @return false on failure
+     * @return false on no update or update failure
      */
     bool update();
 
