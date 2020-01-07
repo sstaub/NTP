@@ -49,7 +49,7 @@ bool NTP::update() {
   if ((millis() - lastUpdate >= interval) || lastUpdate == 0) {
     return ntpUpdate();
     }
-  return true;
+  return false;
   }
 
 bool NTP::ntpUpdate() {
