@@ -45,8 +45,8 @@ void loop() {
 ## NTP / ~NTP
 onstructor / destructor for a NTP object
 
-## void begin()
-starts the underlaying UDP client
+## void begin(bool blocking = true)
+starts the underlaying UDP client, the function is normaly blocking if there is no connection, to unblock set begin(false);
 
 ## void stop()
 stops the underlaying UDP client
