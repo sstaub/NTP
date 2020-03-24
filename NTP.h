@@ -59,8 +59,9 @@ class NTP {
     /**
      * @brief starts the underlying UDP client with the default local port
      * 
+     * @param blocking function blocks until answer from NTP server is reached
      */
-    void begin();
+    void begin(bool blocking = true);
 
     /**
      * @brief stops the underlying UDP client

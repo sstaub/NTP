@@ -30,9 +30,12 @@ NTP::~NTP() {
   stop();
   }
 
-void NTP::begin() {
+void NTP::begin(bool blocking) {
   udp->begin(NTP_DEFAULT_LOCAL_PORT);
-  while (!ntpUpdate());
+  
+  if (blocking) while (!ntpUpdate());
+  else ntpUpdate();
+
   if (dstZone) {
     timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
     dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
