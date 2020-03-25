@@ -71,6 +71,9 @@ bool NTP::ntpUpdate() {
   lastUpdate = millis() - (10 * (timeout + 1));
   udp->read(ntpQuery, NTP_PACKET_SIZE);
   uint32_t ntpTime = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
+  if (ntpTime == 0) {
+    return false;
+  }
   utcTime = ntpTime - SEVENTYYEARS;
   return true;
   }
