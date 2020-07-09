@@ -48,11 +48,11 @@ void NTP::stop() {
   udp->stop();
   }
 
-bool NTP::update() {
-  if ((millis() - lastUpdate >= interval) || lastUpdate == 0) {
-    return ntpUpdate();
+NTPUpdReturnCode NTP::update(bool force) {
+  if (((millis() - lastUpdate >= interval) && millis() - updateUnsuccTried >= interval) || lastUpdate == 0 || force) {
+    return (ntpUpdate() ? UPD_SUCCESS : NO_UPD_ERROR);
     }
-  return false;
+  return NO_UPD_TOO_SOON;
   }
 
 bool NTP::ntpUpdate() {
@@ -65,16 +65,23 @@ bool NTP::ntpUpdate() {
   do {
     delay (10);
     size = udp->parsePacket();
-    if (timeout > 100) return false;
+    if (timeout > 200) {
+      updateUnsuccTried = millis();
+      return false;
+    }
     timeout++;
     } while (size != 48);
+  uint32_t lastUpdate_saved = lastUpdate;
   lastUpdate = millis() - (10 * (timeout + 1));
   udp->read(ntpQuery, NTP_PACKET_SIZE);
   uint32_t ntpTime = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
-  if (ntpTime == 0) {
+  if (ntpTime == 0 || (ntpTime - utcTime - SEVENTYYEARS) < MIN_UPDATE_OFFSET) {
+    updateUnsuccTried = lastUpdate;
+    lastUpdate = lastUpdate_saved;
     return false;
   }
   utcTime = ntpTime - SEVENTYYEARS;
+  updateUnsuccTried = 0;
   return true;
   }
 
