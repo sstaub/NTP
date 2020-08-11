@@ -32,14 +32,17 @@
 #define NTP_DEFAULT_LOCAL_PORT 123
 #define SECS_PER_MINUTES 60
 #define SECS_PER_DAY 86400
+#define MIN_UPDATE_OFFSET 300UL //workaround for unsuccsessful time reception
 
 #define GMT_MESSAGE "GMT +/- offset"
 #define RULE_DST_MESSAGE "no DST rule"
 #define RULE_STD_MESSAGE "no STD rule"
 
-enum week_t {Last, First, Second, Third, Fourth}; 
-enum dow_t {Sun, Mon, Tue, Wed, Thu, Fri, Sat};
-enum month_t {Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec};
+//enum week_t {Last, First, Second, Third, Fourth}; 
+//enum dow_t {Sun, Mon, Tue, Wed, Thu, Fri, Sat};
+//enum month_t {Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec};
+
+enum NTPUpdReturnCode {NO_UPD_TOO_SOON = 0, UPD_SUCCESS = 1, NO_UPD_ERROR = 2};
 
 class NTP {
   public:
@@ -73,10 +76,11 @@ class NTP {
      * @brief This should be called in the main loop of your application. By default an update from the NTP Server is only
      * made every 60 seconds. This can be configured in the NTPTime constructor.
      * 
-     * @return true on success
-     * @return false on no update or update failure
+     * @return NO_UPD_TOO_SOON on no update (time interval)
+     * @return UPD_SUCCESS on update succes
+     * @return NO_UPD_ERROR on no update (sync failure)
      */
-    bool update();
+    NTPUpdReturnCode update(bool force = false);
 
     /**
      * @brief set another server than the default "pool.ntp.org"
@@ -248,6 +252,7 @@ class NTP {
     struct tm *current;
     uint32_t interval = 60000;
     uint32_t lastUpdate = 0;
+    uint32_t updateUnsuccTried = 0;
     uint8_t tzHours = 0;
     uint8_t tzMinutes = 0;
     int32_t timezoneOffset;
