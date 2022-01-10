@@ -5,6 +5,12 @@ This NTP library uses the functions of the time.h standard library.<br>
 
 The library doesn't work with AVR boards like UNO WiFi Rev2 because it seems there is a bug in "time.h" of the AVR C library.
 
+## Changes for 1.6
+
+- change of begin(), now you can start with hostname or IP address 
+- no blocking
+- better documentation
+
 ## Example
 Example for WIFI boards like ESP32 or MKR1000, NANO RP2040 Connect and other, prints formatted time and date strings to console.
 
