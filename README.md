@@ -92,7 +92,7 @@ void stop();
 ```
 Stop the underlaying UDP client
 
-Example, this must done in ```setup()```
+Example
 ```cpp
 ntp.stop();
 ```
