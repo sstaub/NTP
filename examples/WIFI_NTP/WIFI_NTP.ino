@@ -1,11 +1,12 @@
-// example for WIFI based boards like ESP8266, ESP32, WiFi 101 shield or MKR1000
+// example for WIFI based boards like ESP8266, ESP32, Nano RP2040 Connect, WiFi 101 shield or MKR1000
 
 #include "Arduino.h"
 // change next line to use with another board/shield
 //#include <ESP8266WiFi.h>
 //#include <WiFi.h> // for WiFi shield or ESP32
-#include <WiFi101.h> // for WiFi 101 shield or MKR1000
-#include "WiFiUdp.h"
+//#include <WiFi101.h> // for WiFi 101 shield or MKR1000
+#include <WiFiNINA.h> // for e.g. Nano RP2040 Connect
+//#include "WiFiUdp.h" // not needed for WiFiNINA
 #include "NTP.h"
 
 char ssid[]     = "yourSSID";

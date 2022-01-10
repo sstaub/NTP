@@ -11,7 +11,6 @@ NTP	KEYWORD1
 begin	KEYWORD2
 stop	KEYWORD2
 update	KEYWORD2
-ntpServer	KEYWORD2
 updateInterval	KEYWORD2
 timeZone	KEYWORD2
 ruleDST	KEYWORD2
@@ -27,4 +26,3 @@ hours	KEYWORD2
 minutes	KEYWORD2
 seconds	KEYWORD2
 formattedTime	KEYWORD2
-offset	KEYWORD2

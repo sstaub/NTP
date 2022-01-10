@@ -1,7 +1,7 @@
 /**
  * NTP library for Arduino framewoek
  * The MIT License (MIT)
- * (c) 2018 sstaub
+ * (c) 2022 sstaub
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@
 
 #define SEVENTYYEARS 2208988800UL
 #define NTP_PACKET_SIZE 48
-#define NTP_DEFAULT_LOCAL_PORT 123
+#define NTP_PORT 123
 #define SECS_PER_MINUTES 60
 #define SECS_PER_DAY 86400
 
@@ -59,9 +59,11 @@ class NTP {
     /**
      * @brief starts the underlying UDP client with the default local port
      * 
-     * @param blocking function blocks until answer from NTP server is reached
+     * @param server NTP server host name
+     * @param serverIP NTP server IP address
      */
-    void begin(bool blocking = true);
+    void begin(const char* server = "pool.ntp.org");
+    void begin(IPAddress serverIP);
 
     /**
      * @brief stops the underlying UDP client
@@ -77,13 +79,6 @@ class NTP {
      * @return false on no update or update failure
      */
     bool update();
-
-    /**
-     * @brief set another server than the default "pool.ntp.org"
-     * 
-     * @param server name of the NTP server
-     */
-    void ntpServer(const char* server);
 
     /**
      * @brief set the update interval
@@ -225,22 +220,12 @@ class NTP {
      * @param format for strftime
      * @return char* formated time string
      */
-    char* formattedTime(const char *format);
-
-    /**
-     * @brief for debug purposes you can make an offset
-     * 
-     * @param days 
-     * @param hours 
-     * @param minutes 
-     * @param seconds 
-     */
-    void offset(int16_t days, int8_t hours, int8_t minutes, int8_t seconds);
+    const char* formattedTime(const char *format);
 
   private:
     UDP *udp;
-    const char* server = "pool.ntp.org";
-    int16_t port = NTP_DEFAULT_LOCAL_PORT;
+    const char* server = nullptr;
+    IPAddress serverIP;
     const uint8_t ntpRequest[NTP_PACKET_SIZE] = {0xE3, 0x00, 0x06, 0xEC};
     uint8_t ntpQuery[NTP_PACKET_SIZE];
     time_t utcCurrent = 0;
