@@ -81,8 +81,17 @@ bool NTP::ntpUpdate() {
 		} while (size != 48);
 	lastUpdate = millis() - (10 * (timeout + 1));
 	udp->read(ntpQuery, NTP_PACKET_SIZE);
-	uint32_t ntpTime = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
+
+	#ifdef __AVR__
+	unsigned long highWord = word(ntpQuery[40], ntpQuery[41]);
+    unsigned long lowWord = word(ntpQuery[42], ntpQuery[43]);
+	ntpTime = highWord << 16 | lowWord;
+	utcTime = ntpTime - NTP_OFFSET;
+	#else
+	ntpTime = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
 	utcTime = ntpTime - SEVENTYYEARS;
+	#endif
+
 	return true;
 	}
 
@@ -208,6 +217,16 @@ int8_t NTP::seconds() {
 	currentTime();
 	return current->tm_sec;
 	}
+
+uint32_t NTP::GetUtcTime() {
+	currentTime();
+	return utcTime;
+}
+
+uint32_t NTP::GetNtpTime() {
+	currentTime();
+	return ntpTime;
+}	
 
 const char* NTP::formattedTime(const char *format) {
 	currentTime();

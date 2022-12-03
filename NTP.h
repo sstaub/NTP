@@ -213,6 +213,20 @@ class NTP {
      * @return int seconds
      */
     int8_t seconds();    
+	
+    /**
+     * @brief get the utcTime
+     * 
+     * @return uint32_t seconds
+     */
+	  uint32_t GetUtcTime();    
+	
+    /**
+     * @brief get the ntpTime
+     * 
+     * @return uint32_t seconds
+     */
+	  uint32_t GetNtpTime();    
 
     /**
      * @brief returns a formatted string
@@ -239,6 +253,7 @@ class NTP {
     int16_t dstOffset = 0;
     bool dstZone = true;
     uint32_t utcTime = 0;
+	  uint32_t ntpTime = 0;
     int32_t diffTime;    
     time_t utcSTD, utcDST;
     time_t dstTime, stdTime;
