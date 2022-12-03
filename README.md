@@ -3,7 +3,7 @@ The **NTP** library allows you to receive time information from the Internet. It
 different timezones and daylight saving time (DST).
 This NTP library uses the functions of the time.h standard library.<br>
 
-The library doesn't work with AVR boards like UNO WiFi Rev2 because it seems there is a bug in "time.h" of the AVR C library.
+This library now works also with AVR boards like the Arduino UNO. 
 
 ## Changes in this fork
 
