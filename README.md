@@ -222,6 +222,22 @@ time_t epoch();
 
 Return the Unix epoch timestamp
 
+## GetUtcTime()
+
+```cpp
+uint32_t GetUtcTime();
+```
+
+Return the timestamp received from the ntp server in Unix timestamp format
+
+## GetNtpTime()
+
+```cpp
+uint32_t GetNtpTime();
+```
+
+Return the timestamp received from the ntp server in the NTP timestamp format
+
 ## year(), month(), day(), weekDay(), hours(), minutes(), seconds()
 
 ```cpp
