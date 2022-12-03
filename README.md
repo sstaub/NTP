@@ -5,6 +5,11 @@ This NTP library uses the functions of the time.h standard library.<br>
 
 The library doesn't work with AVR boards like UNO WiFi Rev2 because it seems there is a bug in "time.h" of the AVR C library.
 
+## Changes in this fork
+
+- Updated the library so it works with AVR boards. The issue is the different understanding of timestamps between the AVR C library and other C libraries. Added an preprocessor command to distinguish between AVR and other architectures
+- Added public methods to get the NTP and the UTC time as uint32_t timestamps
+
 ## Changes for 1.6
 
 - change of begin(), now you can start with hostname or IP address 
