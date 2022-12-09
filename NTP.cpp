@@ -32,18 +32,25 @@ NTP::~NTP() {
 
 void NTP::begin(const char* server) {
 	this->server = server;
-	udp->begin(NTP_PORT);
-	ntpUpdate();
-	if (dstZone) {
-		timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
-		dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
-		currentTime();
-		beginDST();
-		} 
+	init(); 
 	}
 
 void NTP::begin(IPAddress serverIP) {
 	this->serverIP = serverIP;
+	init();
+	}
+
+void NTP::init() {
+	memset(ntpRequest, 0, NTP_PACKET_SIZE);
+  ntpRequest[0] = 0b11100011; // LI, Version, Mode
+  ntpRequest[1] = 0;          // Stratum, or type of clock
+  ntpRequest[2] = 6;          // Polling Interval
+  ntpRequest[3] = 0xEC;       // Peer Clock Precision
+  // 8 bytes of zero for Root Delay & Root Dispersion
+  ntpRequest[12]  = 49;
+  ntpRequest[13]  = 0x4E;
+  ntpRequest[14]  = 49;
+  ntpRequest[15]  = 52;
 	udp->begin(NTP_PORT);
 	ntpUpdate();
 	if (dstZone) {
@@ -66,7 +73,6 @@ bool NTP::update() {
 	}
 
 bool NTP::ntpUpdate() {
-	udp->flush();
 	if (server == nullptr) udp->beginPacket(serverIP, NTP_PORT);
 	else udp->beginPacket(server, NTP_PORT);
 	udp->write(ntpRequest, NTP_PACKET_SIZE);
@@ -81,8 +87,23 @@ bool NTP::ntpUpdate() {
 		} while (size != 48);
 	lastUpdate = millis() - (10 * (timeout + 1));
 	udp->read(ntpQuery, NTP_PACKET_SIZE);
-	uint32_t ntpTime = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
-	utcTime = ntpTime - SEVENTYYEARS;
+	#ifdef __AVR__
+ 		unsigned long highWord = word(ntpQuery[40], ntpQuery[41]);
+		unsigned long lowWord = word(ntpQuery[42], ntpQuery[43]);
+		timestamp = highWord << 16 | lowWord;
+		if (timestamp != 0) {
+ 			ntpTime = timestamp;
+ 			utcTime = ntpTime - NTP_OFFSET;
+			}
+		else return false;
+ 	#else
+ 		timestamp = ntpQuery[40] << 24 | ntpQuery[41] << 16 | ntpQuery[42] << 8 | ntpQuery[43];
+		if (timestamp != 0) {
+ 			ntpTime = timestamp;
+ 			utcTime = ntpTime - SEVENTYYEARS;
+			}
+		else return false;
+ 	#endif
 	return true;
 	}
 
@@ -156,7 +177,7 @@ time_t NTP::epoch() {
 	}
 
 void NTP::currentTime() {
-	utcCurrent = diffTime + utcTime + ((millis() - lastUpdate) / 1000); 
+	utcCurrent = utcTime + ((millis() - lastUpdate) / 1000); 
 	if (dstZone) {
 		if (summerTime()) {
 			local = utcCurrent + dstOffset + timezoneOffset;
@@ -256,4 +277,12 @@ bool NTP::summerTime() {
 	else {
 		return false;
 		}
+	}
+
+uint32_t NTP::ntp() {
+	return ntpTime;
+	}
+
+uint32_t NTP::utc() {
+	return utcTime;
 	}

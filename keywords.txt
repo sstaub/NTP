@@ -26,3 +26,5 @@ hours	KEYWORD2
 minutes	KEYWORD2
 seconds	KEYWORD2
 formattedTime	KEYWORD2
+utc	KEYWORD2
+ntp	KEYWORD2

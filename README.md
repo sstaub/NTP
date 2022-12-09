@@ -3,7 +3,10 @@ The **NTP** library allows you to receive time information from the Internet. It
 different timezones and daylight saving time (DST).
 This NTP library uses the functions of the time.h standard library.<br>
 
-The library doesn't work with AVR boards like UNO WiFi Rev2 because it seems there is a bug in "time.h" of the AVR C library.
+## Changes for 1.7
+
+- support for AVR
+- optimizations 
 
 ## Changes for 1.6
 
@@ -92,7 +95,7 @@ void stop();
 ```
 Stop the underlaying UDP client
 
-Example
+Example, this must done in ```setup()```
 ```cpp
 ntp.stop();
 ```
@@ -307,6 +310,21 @@ Format symbols:
 | p | writes localized a.m. or p.m. (locale dependent)
 ```
 
+## Return utc()
+
+ ```cpp
+ uint32_t utc();
+ ```
+
+ Return the timestamp received from the ntp server in Unix timestamp format
+
+ ## Return ntp()
+
+ ```cpp
+ uint32_t ntp();
+ ```
+
+ Return the timestamp received from the ntp server in the NTP timestamp format
 
 
 
