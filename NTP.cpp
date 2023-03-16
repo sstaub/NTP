@@ -21,6 +21,7 @@
  */
 
 #include "NTP.h"
+#include <time.h>
 
 NTP::NTP(UDP& udp) {
 	this->udp = &udp;
@@ -104,6 +105,11 @@ bool NTP::ntpUpdate() {
 			}
 		else return false;
  	#endif
+
+	// set the hardware clock to UTC
+	timeval tv = { epoch(), 0 };
+	settimeofday(&tv, nullptr);
+
 	return true;
 	}
 
