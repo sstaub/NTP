@@ -249,8 +249,8 @@ class NTP {
     UDP *udp;
     const char* server = nullptr;
     IPAddress serverIP;
-    uint8_t ntpRequest[NTP_PACKET_SIZE]; // = {0xE3, 0x00, 0x06, 0xEC};
-    uint8_t ntpQuery[NTP_PACKET_SIZE];
+    uint8_t ntpRequest[NTP_PACKET_SIZE] __attribute__((aligned(4))); // = {0xE3, 0x00, 0x06, 0xEC};
+    uint8_t ntpQuery[NTP_PACKET_SIZE] __attribute__((aligned(4)));
     time_t utcCurrent = 0;
     time_t local = 0;
     struct tm *current;

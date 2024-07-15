@@ -73,8 +73,17 @@ bool NTP::update() {
 	}
 
 bool NTP::ntpUpdate() {
-	if (server == nullptr) udp->beginPacket(serverIP, NTP_PORT);
+	if (server == nullptr) udp->beginPacket(serverIP, NTP_PORT);	
 	else udp->beginPacket(server, NTP_PORT);
+	// We set the transmit timestamp to be able to pick the
+	// correct response packet in case of previous responses arriving
+	// later. Sine the transmit timestamp is just copied verbatim
+	// into the response origin timestamp but otherwise not used
+	// it can be any number, and in particular does not nned to be
+	// an ntp-style timestamp.
+	const int64_t transmit_ts = micros();
+	// Set transmit ts, offset in packet is 40, i.e. 10 32-bit words 
+	*reinterpret_cast<int64_t *>(ntpRequest + 10*4) = transmit_ts;
 	udp->write(ntpRequest, NTP_PACKET_SIZE);
 	udp->endPacket();
 	uint8_t timeout = 0;
@@ -84,9 +93,15 @@ bool NTP::ntpUpdate() {
 		size = udp->parsePacket();
 		if (timeout > 100) return false;
 		timeout++;
-		} while (size != 48);
+	        if (size == 48) {
+	          udp->read(ntpQuery, NTP_PACKET_SIZE);		  
+		}
+	 } while (size != 48 ||
+		  // Check returned originate timestamp also matches
+		  // transmit_ts. Originate timestamp is 6 32 bit words
+		  // into packet.
+		  *reinterpret_cast<int64_t *>(ntpQuery + 6*4) != transmit_ts); 
 	lastUpdate = millis() - (10 * (timeout + 1));
-	udp->read(ntpQuery, NTP_PACKET_SIZE);
 	#ifdef __AVR__
  		unsigned long highWord = word(ntpQuery[40], ntpQuery[41]);
 		unsigned long lowWord = word(ntpQuery[42], ntpQuery[43]);
