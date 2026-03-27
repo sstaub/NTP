@@ -194,6 +194,8 @@ Example, this must done in ```setup()```
 ntp.updateInterval(1000); // update every second
 ```
 
+Note: If the NTP source server returns a back-off request, we respect this request by doubling the configured interval value up to a maximum of 300000ms or 5 minutes
+
 ## syncRTC()
 
 ```cpp
@@ -453,7 +455,7 @@ Returns the measured round-trip network delay from the last successful NTP synch
 
 This value represents the total time from sending the NTP request to receiving the response. The library automatically compensates for half of this delay (one-way latency) when calculating the precise timestamp.
 
-On ESP32/ESP8266 platforms, the delay is measured at microsecond precision and converted to milliseconds (preserving sub-millisecond accuracy as a float). On other platforms, millisecond precision is used.
+On ESP32/8266, SAMD, and RP2040 platforms, the delay is measured at microsecond precision and converted to milliseconds (preserving sub-millisecond accuracy as a float). On other platforms, millisecond precision is used.
 
 Example
 ```cpp
