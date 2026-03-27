@@ -30,8 +30,11 @@ void setup() {
   }
 
 void loop() {
-  ntp.update();
-  Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
-  Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  if (ntp.update()) {
+    Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
+    Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  } else {
+    Serial.println("No valid time data");
+  }
   delay(1000);
   }
