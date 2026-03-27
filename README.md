@@ -11,14 +11,14 @@ On Espressif (ESP32, ESP8266), the library automatically synchronizes the system
 
 - new `milliseconds()` method returns current milliseconds (0-999)
 - ~1ms resolution vs previous ~1s resolution
-- network delay compensation automatically adjusts timestamps for round-trip latency (uses `micros()` on ESP32/ESP8266 for sub-millisecond precision)
-- ESP32/ESP8266 system RTC now synced with sub-millisecond (microsecond) precision
+- network delay compensation automatically adjusts timestamps for round-trip latency (uses `micros()` on ESP32/ESP8266 for better precision)
+- ESP32/ESP8266 system RTC now synced with sub-millisecond precision
 
 ### Bug Fixes
 
 - timestamp assembly from NTP response bytes now casts each `uint8_t` to `uint32_t` before shifting, eliminating signed integer overflow
 - `calcDateDST()` pre-increment fix: December "Last week" rules no longer produce an out-of-range `tm_mon = 12`
-- `calcDateDST()` now zero-initializes `struct tm` before passing to `mktime()`, preventing DST transitions from being off by one hour
+- `calcDateDST()` now zero-initialize `struct tm` before passing to `mktime()`, preventing DST transitions from being off by one hour
 - `init()` now only computes DST transition times when the initial `ntpUpdate()` succeeds, preventing epoch-zero corruption of `utcDST`/`utcSTD` when WiFi is not yet connected
 - `ntpUpdate()` now validates received packet size is within the valid NTP/SNTP range (48–68 bytes); malformed or oversized packets are rejected
 - `isDST()` now applies the same DST-configured guard used by `currentTime()`, preventing a false `true` return before rules are configured
