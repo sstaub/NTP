@@ -187,14 +187,12 @@ void updateInterval(uint32_t interval);
 ```
 Set the update interval for connecting the NTP server in ms, default is 60000ms (60s)
 
-Note: if the NTP server sends a stratum 0 "Kiss-of-Death" response, the library will automatically double the interval (up to a maximum of 300000 ms) to back off as requested.
+Note: if the NTP server returns a back-off request, this library respects the request by doubling the configured interval value up to a maximum of 300000ms or 5 minutes.
 
 Example, this must done in ```setup()```
 ```cpp
 ntp.updateInterval(1000); // update every second
 ```
-
-Note: If the NTP source server returns a back-off request, we respect this request by doubling the configured interval value up to a maximum of 300000ms or 5 minutes
 
 ## syncRTC()
 
