@@ -3,6 +3,9 @@
 #######################################
 
 NTP	KEYWORD1
+week_t	KEYWORD1
+dow_t	KEYWORD1
+month_t	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -32,3 +35,32 @@ milliseconds	KEYWORD2
 formattedTime	KEYWORD2
 utc	KEYWORD2
 ntp	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+Last	LITERAL1
+First	LITERAL1
+Second	LITERAL1
+Third	LITERAL1
+Fourth	LITERAL1
+Sun	LITERAL1
+Mon	LITERAL1
+Tue	LITERAL1
+Wed	LITERAL1
+Thu	LITERAL1
+Fri	LITERAL1
+Sat	LITERAL1
+Jan	LITERAL1
+Feb	LITERAL1
+Mar	LITERAL1
+Apr	LITERAL1
+May	LITERAL1
+Jun	LITERAL1
+Jul	LITERAL1
+Aug	LITERAL1
+Sep	LITERAL1
+Oct	LITERAL1
+Nov	LITERAL1
+Dec	LITERAL1

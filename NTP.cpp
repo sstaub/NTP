@@ -46,7 +46,7 @@ void NTP::begin(IPAddress serverIP) {
 
 void NTP::init() {
 	memset(ntpRequest, 0, NTP_PACKET_SIZE);
-  ntpRequest[0] = 0b11100011; // LI, Version, Mode
+  ntpRequest[0] = 0b00100011; // LI=0, Version=4, Mode=3 (client)
   ntpRequest[1] = 0;          // Stratum, or type of clock
   ntpRequest[2] = 6;          // Polling Interval
   ntpRequest[3] = 0xEC;       // Peer Clock Precision
@@ -55,8 +55,6 @@ void NTP::init() {
 	udp->begin(NTP_PORT);
 	bool syncOk = ntpUpdate();
 	if (syncOk && dstZone && dstRuleConfigured && stdRuleConfigured) {
-		timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
-		dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
 		currentTime();
 		beginDST();
 		}
@@ -85,7 +83,7 @@ bool NTP::ntpUpdate() {
 	else udp->beginPacket(server, NTP_PORT);
 	
 	// Capture send time for network delay compensation
-	#if defined(ESP32) || defined(ESP8266)
+	#if defined(ESP32) || defined(ESP8266) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD)
 	uint32_t sendTime = micros();
 	#else
 	uint32_t sendTime = millis();
@@ -95,7 +93,7 @@ bool NTP::ntpUpdate() {
 	udp->endPacket();
 	
 	uint32_t startTime = millis();
-	uint8_t size = 0;
+	int size = 0;
 	while (size < NTP_PACKET_SIZE || size > NTP_PACKET_MAX_SIZE) {
 		size = udp->parsePacket();
 		if (millis() - startTime > 1000) return false; // 1 second timeout
@@ -104,7 +102,7 @@ bool NTP::ntpUpdate() {
 		}
 	
 	// Capture receive time for network delay compensation
-	#if defined(ESP32) || defined(ESP8266)
+	#if defined(ESP32) || defined(ESP8266) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD)
 	uint32_t receiveTime = micros();
 	#else
 	uint32_t receiveTime = millis();
@@ -166,12 +164,16 @@ bool NTP::ntpUpdate() {
 			return false;
 			}
  	#endif
+	if (dstZone && dstRuleConfigured && stdRuleConfigured) {
+		timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
+		dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
+		}
 	return true;
 	}
 
 void NTP::compensateNetworkDelay(uint32_t sendTime, uint32_t receiveTime, uint32_t& timestamp, uint32_t& fraction) {
 	// Calculate round-trip delay
-	#if defined(ESP32) || defined(ESP8266)
+	#if defined(ESP32) || defined(ESP8266) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD)
 	// sendTime and receiveTime are in microseconds
 	uint32_t roundTripUs = receiveTime - sendTime;
 	lastRoundTripDelay = roundTripUs;  // Store for retrieval
@@ -249,6 +251,8 @@ const char* NTP::ruleDST() {
 		if (!timeStr) return "Invalid DST time";
 		strncpy(ruleString, timeStr, sizeof(ruleString) - 1);
 		ruleString[sizeof(ruleString) - 1] = '\0';
+		size_t len = strlen(ruleString);
+		if (len > 0 && ruleString[len - 1] == '\n') ruleString[len - 1] = '\0';
 		return ruleString;
 		}
 	else return RULE_DST_MESSAGE;
@@ -278,13 +282,15 @@ const char* NTP::ruleSTD() {
 		if (!timeStr) return "Invalid STD time";
 		strncpy(ruleString, timeStr, sizeof(ruleString) - 1);
 		ruleString[sizeof(ruleString) - 1] = '\0';
+		size_t len = strlen(ruleString);
+		if (len > 0 && ruleString[len - 1] == '\n') ruleString[len - 1] = '\0';
 		return ruleString;
 		}
 	else return RULE_STD_MESSAGE;
 	}
 
 const char* NTP::tzName() {
-	if (dstZone && dstRuleConfigured && stdRuleConfigured) {
+	if (dstZone && dstRuleConfigured && stdRuleConfigured && hasValidSync) {
 		if (summerTime()) return dstStart.tzName;
 		else return dstEnd.tzName;
 		}
@@ -292,7 +298,7 @@ const char* NTP::tzName() {
 	}
 
 void NTP::timeZone(int8_t tzHours, int8_t tzMinutes) {
-	timezoneOffset = tzHours * 3600;
+	timezoneOffset = (int32_t)tzHours * 3600;
 	if (tzHours < 0) {
 		timezoneOffset -= tzMinutes * 60;
 		}
@@ -306,7 +312,7 @@ void NTP::isDST(bool dstZone) {
 	}
 
 bool NTP::isDST() {
-	if (dstZone && dstRuleConfigured && stdRuleConfigured) return summerTime();
+	if (dstZone && dstRuleConfigured && stdRuleConfigured && hasValidSync) return summerTime();
 	return false;
 	}
 
@@ -317,7 +323,15 @@ time_t NTP::epoch() {
 
 void NTP::currentTime() {
 	utcCurrent = utcTime + ((millis() - lastUpdate) / 1000); 
-	if (dstZone && dstRuleConfigured && stdRuleConfigured) {
+	if (dstZone && dstRuleConfigured && stdRuleConfigured && hasValidSync) {
+		// Bootstrap DST transition times on the first successful call after a
+		// failed init() – yearDST==0 means beginDST() has never run.
+		// Use a UTC-based gmtime to get the year, then compute the transitions
+		// before evaluating summerTime(), so utcDST/utcSTD are valid.
+		if (yearDST == 0) {
+			current = gmtime(&utcCurrent);
+			if (current) beginDST();
+			}
 		if (summerTime()) {
 			local = utcCurrent + dstOffset + timezoneOffset;
 			current = gmtime(&local);
@@ -466,7 +480,7 @@ bool NTP::isValid() {
 	}
 
 float NTP::roundTripDelay() {
-	#if defined(ESP32) || defined(ESP8266)
+	#if defined(ESP32) || defined(ESP8266) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD)
 	// Convert microseconds to milliseconds
 	return lastRoundTripDelay / 1000.0;
 	#else

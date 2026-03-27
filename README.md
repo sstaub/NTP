@@ -7,42 +7,44 @@ On Espressif (ESP32, ESP8266), the library automatically synchronizes the system
 
 ## Changes for 1.8.0
 
-### Millisecond Precision
+### Behavioral Improvements
 
-- new `milliseconds()` method returns current milliseconds (0-999)
-- ~1ms resolution vs previous ~1s resolution
-- network delay compensation automatically adjusts timestamps for round-trip latency (uses `micros()` on ESP32/ESP8266 for better precision)
-- ESP32/ESP8266 system RTC now synced with sub-millisecond precision
-
-### Bug Fixes
-
-- timestamp assembly from NTP response bytes now casts each `uint8_t` to `uint32_t` before shifting, eliminating signed integer overflow
-- `calcDateDST()` pre-increment fix: December "Last week" rules no longer produce an out-of-range `tm_mon = 12`
-- `calcDateDST()` now zero-initialize `struct tm` before passing to `mktime()`, preventing DST transitions from being off by one hour
-- `init()` now only computes DST transition times when the initial `ntpUpdate()` succeeds, preventing epoch-zero corruption of `utcDST`/`utcSTD` when WiFi is not yet connected
-- `ntpUpdate()` now validates received packet size is within the valid NTP/SNTP range (48–68 bytes); malformed or oversized packets are rejected
-- `isDST()` now applies the same DST-configured guard used by `currentTime()`, preventing a false `true` return before rules are configured
-- removed unused `POSIX_OFFSET` and `UNIXOFFSET` macros
+- improved sync status tracking: update() now returns true when a valid sync exists, not just when performing new sync
+- network delay compensation automatically adjusts timestamps for round-trip latency (uses `micros()` on ESP32/ESP8266, SAMD, RP2040 for best precision)
+- automatic ESP32/ESP8266 system RTC synchronization: system time is automatically updated on successful NTP sync
 
 ### API Improvements
 
 - new `isValid()` method validates the last NTP response (checks leap indicator and stratum)
 - new `roundTripDelay()` method returns last measured NTP request round-trip delay in milliseconds as a `float`
-- NTP request packet Reference Identifier now correctly set to zero for client requests
+- new `milliseconds()` method returns current milliseconds (0-999)
+- new `syncRTC()` method for ESP32/ESP8266 to optionally disable automatic RTC synchronization
 
 ### Kiss-of-Death Back-off
 
 - when the NTP server returns stratum 0 (a back-off request), the configured update interval is automatically doubled up to a maximum of 300000 ms (5 minutes)
 
-### Examples
+### Bug Fixes
+
+- NTP request packet Reference Identifier now correctly set to zero for client requests
+- timestamp assembly from NTP response bytes now casts each `uint8_t` to `uint32_t` before shifting, eliminating signed integer overflow
+- `calcDateDST()` pre-increment fix: December "Last week" rules no longer produce an out-of-range `tm_mon = 12`
+- `calcDateDST()` now zero-initializes `struct tm` before passing to `mktime()`, preventing DST transitions from being off by one hour
+- `init()` now only computes DST transition times when the initial `ntpUpdate()` succeeds, preventing epoch-zero corruption of `utcDST`/`utcSTD` when WiFi is not yet connected
+- `ntpUpdate()` now validates received packet size is within the valid NTP/SNTP range (48–68 bytes); malformed or oversized packets are rejected
+- `isDST()` now applies the same DST-configured guard used by `currentTime()`, preventing a false `true` return before rules are configured
+- removed unused `POSIX_OFFSET` and `UNIXOFFSET` macros
+- `ntpRequest[0]` NTP client request packet byte 0 corrected to `0b00100011` (LI=0, Version=4, Mode=3); previously `0b11100011`, now compliant with RFC 4330
+- `timezoneOffset` and `dstOffset` are now recomputed on every successful NTP sync, not only during `init()`; previously a failed initial sync left both values at zero permanently, causing all time accessors to return UTC regardless of the configured timezone rules
+- packet size variable changed from `uint8_t` to `int` to match the `int` return type of `parsePacket()`
+- `tzName()` now applies the same `hasValidSync` guard as `isDST()` and `currentTime()`, preventing it from calling `summerTime()` before any sync has occurred and returning the wrong timezone name for southern-hemisphere DST rules at startup
+- `currentTime()` now applies the same `hasValidSync` guard, preventing it from applying DST offsets before the first successful sync
+- `timeZone()` now casts to `int32_t` before multiplying hours by 3600, preventing integer overflow on AVR for timezone offsets of UTC±9 and beyond (e.g. Japan, Australia, New Zealand)
+- `ruleDST()` and `ruleSTD()` getters now strip the trailing newline that `ctime()` appends before returning the formatted date string
+
+### New Example
 
 - new `ESP32_Precision_NTP` example demonstrates sub-millisecond accuracy, NTP validation, ESP32 RTC synchronization, and network delay measurement
-
-## Changes for 1.7.2
-
-- improved sync status tracking: update() now returns true when a valid sync exists, not just when performing new sync
-- automatic ESP32/ESP8266 system RTC synchronization: system time is automatically updated on successful NTP sync
-- new syncRTC() method for ESP32/ESP8266 to optionally disable automatic RTC synchronization
 
 ## Changes for 1.7.1
 
@@ -404,7 +406,7 @@ Format symbols:
  uint32_t utc();
  ```
 
- Return the timestamp received from the ntp server in Unix timestamp format
+ Returns the raw Unix timestamp recorded at the moment the last NTP packet was received. Unlike `epoch()`, this value does not advance between syncs — it is a frozen snapshot of the server response. Use `epoch()` when you need the current time; use `utc()` only when you need the exact value that arrived from the NTP server.
 
  ## Return ntp()
 
