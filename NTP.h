@@ -1,7 +1,7 @@
 /**
  * NTP library for Arduino framewoek
  * The MIT License (MIT)
- * (c) 2022 sstaub
+ * (c) 2026 sstaub
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,18 +27,15 @@
 #include <time.h>
 #include <Udp.h>
 
-#define SEVENTYYEARS 2208988800UL
-#define NTP_OFFSET SEVENTYYEARS
-#define UNIXOFFSET 946684800UL
-
-#ifdef __AVR__
-  //#define POSIX_OFFSET NTP_OFFSET - SEVENTYYEARS// - UNIX_OFFSET// + 30 years
-  #define POSIX_OFFSET UNIXOFFSET
-#else
-  #define POSIX_OFFSET -SEVENTYYEARS
+#if defined(ESP32) || defined(ESP8266)
+  #include <sys/time.h>
 #endif
 
+#define SEVENTYYEARS 2208988800UL
+#define NTP_OFFSET SEVENTYYEARS
+
 #define NTP_PACKET_SIZE 48
+#define NTP_PACKET_MAX_SIZE 68 // max valid SNTP response (base 48 + 20 bytes extension)
 #define NTP_PORT 123
 #define SECS_PER_MINUTES 60
 #define SECS_PER_DAY 86400
@@ -69,7 +66,7 @@ class NTP {
     /**
      * @brief starts the underlying UDP client with the default local port
      * 
-     * @param server NTP server host name
+      * @param server NTP server host name, null falls back to pool.ntp.org
      * @param serverIP NTP server IP address
      */
     void begin(const char* server = "pool.ntp.org");
@@ -97,14 +94,24 @@ class NTP {
      */
     void updateInterval(uint32_t interval);
 
+#if defined(ESP32) || defined(ESP8266)
+    /**
+     * @brief enable or disable automatic ESP32/ESP8266 system RTC synchronization
+     * By default, the system RTC will be updated automatically on successful NTP sync
+     * 
+     * @param enable true to enable RTC sync (default on ESP32/ESP8266), false to disable
+     */
+    void syncRTC(bool enable);
+#endif
+
     /**
      * @brief set the rule for DST (daylight saving time)
      * start date of DST 
      * 
-     * @param tzName name of the time zone
+      * @param tzName name of the time zone, null stores an empty name
      * @param week Last, First, Second, Third, Fourth (0 - 4)
-     * @param wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
-     * @param month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
+     * @param wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 6)
+     * @param month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 - 11)
      * @param hour the local hour when rule chages
      * @param tzOffset sum of summertime and timezone offset
      */
@@ -121,10 +128,10 @@ class NTP {
      * @brief set the rule for STD (standard day)
      * end date of DST
      * 
-     * @param tzName name of the time zone
+      * @param tzName name of the time zone, null stores an empty name
      * @param week Last, First, Second, Third, Fourth (0 - 4)
-     * @param wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
-     * @param month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
+     * @param wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 6)
+     * @param month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 - 11)
      * @param hour the local hour when rule chages
      * @param tzOffset timezone offset
      */
@@ -154,7 +161,7 @@ class NTP {
     void timeZone(int8_t tzHours, int8_t tzMinutes = 0);
 
     /**
-     * @brief set daylight saving manually! 
+     * @brief set daylight saving manually
      * use in conjunction with timeZone, when there is no DST!
      * 
      * @param dstZone 
@@ -222,7 +229,14 @@ class NTP {
      * 
      * @return int seconds
      */
-    int8_t seconds();    
+    int8_t seconds();
+
+    /**
+     * @brief get the milliseconds of the current second
+     * 
+     * @return uint16_t milliseconds (0-999)
+     */
+    uint16_t milliseconds();
 
     /**
      * @brief returns a formatted string
@@ -246,6 +260,22 @@ class NTP {
      */
     uint32_t utc();
 
+    /**
+     * @brief validates the last NTP response
+     * Checks leap indicator and stratum fields for validity
+     * 
+     * @return bool true if response is valid, false if server is unsynchronized or invalid
+     */
+    bool isValid();
+
+    /**
+     * @brief get the last measured round-trip network delay
+     * Returns the network latency measured during the last successful NTP sync
+     * 
+     * @return float round-trip delay in milliseconds (all platforms)
+     */
+    float roundTripDelay();
+
   private:
     UDP *udp;
     char server[64];
@@ -258,17 +288,25 @@ class NTP {
     struct tm *current = nullptr;
     uint32_t interval = 60000;
     uint32_t lastUpdate = 0;
+    bool everSynced = false;
+    bool hasValidSync = false;
+#if defined(ESP32) || defined(ESP8266)
+    bool syncSystemRTC = true;
+#endif
     int32_t timezoneOffset = 0;
     int16_t dstOffset = 0;
     bool dstZone = true;
     bool dstRuleConfigured = false;
     bool stdRuleConfigured = false;
     uint32_t ntpTime = 0;
-    uint32_t utcTime = 0;   
+    uint32_t utcTime = 0;
+    uint16_t ntpMilliseconds = 0;
+    uint32_t lastRoundTripDelay = 0;
     time_t utcSTD = 0, utcDST = 0;
     time_t dstTime = 0, stdTime = 0;
     uint16_t yearDST = 0;
     char timeString[64];
+    char ruleString[26]; // ctime() output
     struct ruleDST {
 	    char tzName[6]; // five chars max
 	    int8_t week;   // First, Second, Third, Fourth, or Last week of the month
@@ -279,6 +317,7 @@ class NTP {
       } dstStart, dstEnd;
     void init();
     bool ntpUpdate();
+    void compensateNetworkDelay(uint32_t sendTime, uint32_t receiveTime, uint32_t& timestamp, uint32_t& fraction);
     void currentTime();
     void beginDST();
     time_t calcDateDST(struct ruleDST rule, int year);
