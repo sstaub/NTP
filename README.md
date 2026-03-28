@@ -1,7 +1,50 @@
 # **NTP**
-The **NTP** library allows you to receive time information from the Internet. It also have support for
+The **NTP** library allows you to receive time information from the Internet. It also has support for
 different timezones and daylight saving time (DST).
-This NTP library uses the functions of the time.h standard library.<br>
+This NTP library uses the functions of the time.h standard library.
+
+On Espressif (ESP32, ESP8266), the library automatically synchronizes the system RTC with NTP time, making standard C time functions available for use.
+
+## Changes for 1.8.0
+
+### Behavioral Improvements
+
+- improved sync status tracking: update() now returns true when a valid sync exists, not just when performing new sync
+- network delay compensation automatically adjusts timestamps for round-trip latency (uses `micros()` on ESP32/ESP8266, SAMD, RP2040 for best precision)
+- automatic ESP32/ESP8266 system RTC synchronization: system time is automatically updated on successful NTP sync
+
+### API Improvements
+
+- new `isValid()` method validates the last NTP response (checks leap indicator and stratum)
+- new `roundTripDelay()` method returns last measured NTP request round-trip delay in milliseconds as a `float`
+- new `milliseconds()` method returns current milliseconds (0-999)
+- new `syncRTC()` method for ESP32/ESP8266 to optionally disable automatic RTC synchronization
+
+### Kiss-of-Death Back-off
+
+- when the NTP server returns stratum 0 (a back-off request), the configured update interval is automatically doubled up to a maximum of 300000 ms (5 minutes)
+
+### Bug Fixes
+
+- NTP request packet Reference Identifier now correctly set to zero for client requests
+- timestamp assembly from NTP response bytes now casts each `uint8_t` to `uint32_t` before shifting, eliminating signed integer overflow
+- `calcDateDST()` pre-increment fix: December "Last week" rules no longer produce an out-of-range `tm_mon = 12`
+- `calcDateDST()` now zero-initializes `struct tm` before passing to `mktime()`, preventing DST transitions from being off by one hour
+- `init()` now only computes DST transition times when the initial `ntpUpdate()` succeeds, preventing epoch-zero corruption of `utcDST`/`utcSTD` when WiFi is not yet connected
+- `ntpUpdate()` now validates received packet size is within the valid NTP/SNTP range (48–68 bytes); malformed or oversized packets are rejected
+- `isDST()` now applies the same DST-configured guard used by `currentTime()`, preventing a false `true` return before rules are configured
+- removed unused `POSIX_OFFSET` and `UNIXOFFSET` macros
+- `ntpRequest[0]` NTP client request packet byte 0 corrected to `0b00100011` (LI=0, Version=4, Mode=3); previously `0b11100011`, now compliant with RFC 4330
+- `timezoneOffset` and `dstOffset` are now recomputed on every successful NTP sync, not only during `init()`; previously a failed initial sync left both values at zero permanently, causing all time accessors to return UTC regardless of the configured timezone rules
+- packet size variable changed from `uint8_t` to `int` to match the `int` return type of `parsePacket()`
+- `tzName()` now applies the same `hasValidSync` guard as `isDST()` and `currentTime()`, preventing it from calling `summerTime()` before any sync has occurred and returning the wrong timezone name for southern-hemisphere DST rules at startup
+- `currentTime()` now applies the same `hasValidSync` guard, preventing it from applying DST offsets before the first successful sync
+- `timeZone()` now casts to `int32_t` before multiplying hours by 3600, preventing integer overflow on AVR for timezone offsets of UTC±9 and beyond (e.g. Japan, Australia, New Zealand)
+- `ruleDST()` and `ruleSTD()` getters now strip the trailing newline that `ctime()` appends before returning the formatted date string
+
+### New Example
+
+- new `ESP32_Precision_NTP` example demonstrates sub-millisecond accuracy, NTP validation, ESP32 RTC synchronization, and network delay measurement
 
 ## Changes for 1.7.1
 
@@ -53,9 +96,12 @@ void setup() {
   }
 
 void loop() {
-  ntp.update();
-  Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
-  Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  if (ntp.update()) {
+    Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
+    Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  } else {
+    Serial.println("No valid time data");
+  }
   delay(1000);
   }
 ```
@@ -80,7 +126,6 @@ NTP ntp(wifiUdp);
 ```
 Destructor for a NTP object
 
-
 ## begin()
 
 ```cpp
@@ -88,6 +133,8 @@ void begin(const char* server = "pool.ntp.org");
 void begin(IPAddress serverIP);
 ```
 Start the underlaying UDP client with a hostname or IP address.
+
+If ```server``` is ```nullptr```, the library falls back to ```"pool.ntp.org"```.
 
 Example, this must done in ```setup()```
 ```cpp
@@ -106,18 +153,30 @@ Example, this must done in ```setup()```
 ntp.stop();
 ```
 
-
 ## update()
 
 ```cpp
-void update();
+bool update();
 ```
-This must called in the main ```loop()```
+This must called in the main ```loop()```. Returns ```true``` if time data is available from the current sync state, ```false``` if no sync has occurred yet or the last sync attempt failed.
+
+The function performs a new NTP sync when the update interval has elapsed (default 60 seconds). Between syncs, it returns the status of the most recent sync attempt, making it easy to check if time data is available.
+
+Important: ```update()``` does not verify the NTP server's reported synchronization state. If your application needs assurance that the server reported valid time data, call ```isValid()``` after ```update()``` returns ```true```.
 
 Example
 ```cpp
 loop() {
-  ntp.update();
+  if (ntp.update()) {
+    if (ntp.isValid()) {
+      Serial.println(ntp.formattedTime("%A %T"));
+    } else {
+      Serial.println("Warning: NTP server reports invalid time");
+    }
+  } else {
+    // Waiting for initial sync or sync failed
+    Serial.println("No valid time data");
+  }
   }
 ``` 
 
@@ -128,10 +187,30 @@ void updateInterval(uint32_t interval);
 ```
 Set the update interval for connecting the NTP server in ms, default is 60000ms (60s)
 
+Note: if the NTP server returns a back-off request, this library respects the request by doubling the configured interval value up to a maximum of 300000ms or 5 minutes.
+
 Example, this must done in ```setup()```
 ```cpp
 ntp.updateInterval(1000); // update every second
 ```
+
+## syncRTC()
+
+```cpp
+void syncRTC(bool enable);
+```
+Enable or disable automatic system RTC synchronization (ESP32 and ESP8266 only).
+
+When enabled, the library automatically updates the ESP32/ESP8266 system RTC on every successful NTP sync using ```settimeofday()```. This allows standard C time functions like ```time()``` and ```localtime()``` to work correctly and makes the library compatible with other code expecting system time to be set.
+
+This feature is automatically enabled by default on ESP32 and ESP8266 platforms. The function is only available when compiling for these platforms.
+
+To disable automatic RTC sync on Espressif devices, in ```setup()``` add:
+```cpp
+ntp.syncRTC(false); // disable automatic system RTC synchronization
+```
+
+Note: On other platforms (AVR, etc.), this function is not available and the library only maintains time internally.
 
 ## ruleDST()
 
@@ -141,8 +220,9 @@ void ruleDST(const char* tzName, int8_t week, int8_t wday, int8_t month, int8_t 
 Set the rules for the daylight save time settings
 
 - tzname is the name of the timezone, e.g. "CEST" (central europe summer time)
+- if ```tzName``` is ```nullptr```, an empty time zone name is stored
 - week Last, First, Second, Third, Fourth (0 - 4)
-- wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
+- wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 6)
 - month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
 - hour the local hour when rule changes
 - tzOffset timezone offset in minutes
@@ -168,8 +248,9 @@ void ruleSTD(const char* tzName, int8_t week, int8_t wday, int8_t month, int8_t 
 Set the rules for the standard time settings
 
 - tzname is the name of the timezone, e.g. "CET" (central europe time)
+- if ```tzName``` is ```nullptr```, an empty time zone name is stored
 - week Last, First, Second, Third, Fourth (0 - 4)
-- wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 7)
+- wday Sun, Mon, Tue, Wed, Thu, Fri, Sat (0 - 6)
 - month Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec (0 -11)
 - hour the local hour when rule changes
 - tzOffset timezone offset in minutes
@@ -251,9 +332,12 @@ Return a string, formated with strftime function of standard time library
 Example
 ```cpp
 loop() {
-  ntp.update();
-  Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
-  Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  if (ntp.update()) {
+    Serial.println(ntp.formattedTime("%d. %B %Y")); // dd. Mmm yyyy
+    Serial.println(ntp.formattedTime("%A %T")); // Www hh:mm:ss
+  } else {
+    Serial.println("No valid time data");
+  }
   delay(1000);
   }
 ``` 
@@ -322,7 +406,7 @@ Format symbols:
  uint32_t utc();
  ```
 
- Return the timestamp received from the ntp server in Unix timestamp format
+ Returns the raw Unix timestamp recorded at the moment the last NTP packet was received. Unlike `epoch()`, this value does not advance between syncs — it is a frozen snapshot of the server response. Use `epoch()` when you need the current time; use `utc()` only when you need the exact value that arrived from the NTP server.
 
  ## Return ntp()
 
@@ -332,5 +416,53 @@ Format symbols:
 
  Return the timestamp received from the ntp server in the NTP timestamp format
 
+## isValid()
 
+```cpp
+bool isValid();
+```
 
+Call this after ```update()``` returns ```true``` when your application needs assurance that the NTP server reported synchronized, usable time.
+
+Validates the last NTP response by checking:
+- Leap Indicator: Returns `false` if server clock is unsynchronized (LI = 3)
+- Stratum: Returns `false` if stratum is 0 (kiss-of-death), 16 (unsynchronized), or > 16 (reserved)
+- Sync status: Returns `false` if no valid sync has occurred yet
+
+Example
+```cpp
+loop() {
+  if (ntp.update()) {
+    if (ntp.isValid()) {
+      Serial.println(ntp.formattedTime("%A %T"));
+    } else {
+      Serial.println("Warning: NTP server reports invalid time");
+    }
+  }
+  delay(1000);
+}
+```
+
+## roundTripDelay()
+
+```cpp
+float roundTripDelay();
+```
+
+Returns the measured round-trip network delay from the last successful NTP synchronization in **milliseconds**.
+
+This value represents the total time from sending the NTP request to receiving the response. The library automatically compensates for half of this delay (one-way latency) when calculating the precise timestamp.
+
+On ESP32/8266, SAMD, and RP2040 platforms, the delay is measured at microsecond precision and converted to milliseconds (preserving sub-millisecond accuracy as a float). On other platforms, millisecond precision is used.
+
+Example
+```cpp
+if (ntp.update()) {
+  if (ntp.isValid()) {
+    float delay = ntp.roundTripDelay();
+    Serial.print("Network round-trip delay: ");
+    Serial.print(delay, 3);  // 3 decimal places
+    Serial.println(" ms");
+  }
+}
+```

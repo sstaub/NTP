@@ -44,15 +44,18 @@ void setup() {
   }
 
 void loop() {
-  ntp.update();
   display.clear();
-  display.fillRect(1, 0, 126 * ntp.seconds() / 59, 2);
   display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.drawString(64, 5, ntp.formattedTime("%d. %B %Y"));
-  display.drawString(64, 15, ntp.formattedTime("%A %T"));
-  display.drawString(64, 25, ntp.ruleDST());
-  display.drawString(64, 35, ntp.ruleSTD());
-  display.drawString(64, 45, ntp.tzName());
+  if (ntp.update()) {
+    display.fillRect(1, 0, 126 * ntp.seconds() / 59, 2);
+    display.drawString(64, 5, ntp.formattedTime("%d. %B %Y"));
+    display.drawString(64, 15, ntp.formattedTime("%A %T"));
+    display.drawString(64, 25, ntp.ruleDST());
+    display.drawString(64, 35, ntp.ruleSTD());
+    display.drawString(64, 45, ntp.tzName());
+  } else {
+    display.drawString(64, 25, "Waiting for NTP sync");
+  }
   display.display();
   delay(500);
   }
