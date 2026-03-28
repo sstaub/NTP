@@ -32,7 +32,13 @@
 #endif
 
 #define SEVENTYYEARS 2208988800UL
-#define NTP_OFFSET SEVENTYYEARS
+#define UNIXOFFSET 946684800UL
+
+#ifdef __AVR__
+  #define NTP_OFFSET UNIXOFFSET - SEVENTYYEARS
+#else
+  #define NTP_OFFSET SEVENTYYEARS
+#endif
 
 #define NTP_PACKET_SIZE 48
 #define NTP_PACKET_MAX_SIZE 68 // max valid SNTP response (base 48 + 20 bytes extension)
