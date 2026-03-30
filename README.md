@@ -5,6 +5,13 @@ This NTP library uses the functions of the time.h standard library.
 
 On Espressif (ESP32, ESP8266), the library automatically synchronizes the system RTC with NTP time, making standard C time functions available for use.
 
+Note for RP2040 / RP2350 users with the arduino-pico WiFi library: WiFi.h from arduino-pico declares a global variable also named NTP, which hides this library's NTP class name. Use the C++ elaborated type specifier to work around it:
+```cpp
+WiFiUDP wifiUdp;
+class NTP ntp(wifiUdp); // "class" keyword forces type lookup, bypassing the Arduino-Pico WiFi library variable
+```
+Or you can use [https://github.com/sstaub/NTP3](https://github.com/sstaub/NTP3) which solves the problem with renaming the classname from NTP to NTP3.
+
 ## Changes for 1.8.0
 
 ### Behavioral Improvements
